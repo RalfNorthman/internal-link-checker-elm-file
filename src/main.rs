@@ -7,16 +7,18 @@ fn check_internal_links(url: &str) -> Result<(), Box<dyn std::error::Error>> {
     let document = Html::parse_document(&body);
 
     let selectors = [
-        Selector::parse("a[href^='#']"),
-        Selector::parse("iframe[src^='#']"),
+        Selector::parse("a[href='#']"),
+        Selector::parse("iframe[src='#']"),
     ];
 
     for selector in &selectors {
         for link in document.select(&selector.as_ref().unwrap()) {
             let href = link.value().attr("href").unwrap_or("");
-            let s = format!("a[name='{}']", &href[1..]);
-            let sel = Selector::parse(&s)?;
-            if !document.select(&sel).next().is_some() {
+            if !document
+                .select(&Selector::parse(href).unwrap())
+                .next()
+                .is_some()
+            {
                 println!("Broken internal link: {}", href);
             }
         }
