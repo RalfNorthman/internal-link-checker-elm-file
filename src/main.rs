@@ -1,34 +1,45 @@
-use reqwest::blocking::Client;
-use scraper::{Html, Selector};
+use std::fs::File;
+use std::io::{BufRead, BufReader};
+use regex::RegexSet;
 
-fn check_internal_links(url: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let response = Client::new().get(url).send()?;
-    let body = response.text()?;
-    let document = Html::parse_document(&body);
+fn main() {
+    let filename = "file.elm";
+    let file = File::open(filename).unwrap();
+    let reader = BufReader::new(file);
 
-    let selectors = [
-        Selector::parse("a[href='#']"),
-        Selector::parse("iframe[src='#']"),
-    ];
+    let mut functions_and_types = Vec::new();
 
-    for selector in &selectors {
-        for link in document.select(&selector.as_ref().unwrap()) {
-            let href = link.value().attr("href").unwrap_or("");
-            if !document
-                .select(&Selector::parse(href).unwrap())
-                .next()
-                .is_some()
-            {
-                println!("Broken internal link: {}", href);
+    let set = RegexSet::new(&[
+        r"^(\w*) : ",         // elm function name
+        r"^type (\w*)",       // elm type name
+        r"^type alias (\w*)", // elm type alias name
+    ])  
+
+    for line in reader.lines() {
+
+    }
+
+    let mut broken_links = Vec::new();
+
+    let file = File::open(filename).unwrap();
+    let reader = BufReader::new(file);
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        for link in line.matches(|c| !c.is_ascii_alphanumeric() && c != '_') {
+            if link.starts_with("#") {
+                let name = &link[1..];
+                if !functions_and_types.contains(&name.to_string()) {
+                    broken_links.push(link.to_string());
+                }
             }
         }
     }
 
-    Ok(())
-}
-
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let url = "https://dark.elm.dmy.fr/packages/gicentre/elm-vegalite/latest/VegaLite";
-    check_internal_links(url)?;
-    Ok(())
+    if !broken_links.is_empty() {
+        println!("Broken links:");
+        for link in broken_links {
+            println!("{}", link);
+        }
+    }
 }
