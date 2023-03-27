@@ -1,40 +1,41 @@
+use anyhow::Result;
 use regex::Regex;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
-fn main() {
+fn main() -> Result<()> {
     let filename = "file.elm";
-    let file = File::open(filename).unwrap();
+    let file = File::open(filename)?;
     let reader = BufReader::new(file);
 
     // elm type and function names
     let mut identifiers = Vec::new();
 
     // elm module exposing list element
-    let exposed_item = Regex::new(r"^\s+,|\(\s(\w+)").unwrap();
+    let exposed_item = Regex::new(r"^\s+[,\(]\s(\w+)")?;
 
-    let lines = reader.lines().skip(1).map(|li| li.unwrap());
+    let lines = reader.lines().skip(1).map(|li| li.ok().expect("lines"));
 
     for line in lines {
         if let Some(capture) = exposed_item.captures(&line) {
-            identifiers.push(capture.get(1).unwrap().as_str().to_string());
+            identifiers.push(capture.get(1).expect("identifier get").as_str().to_string());
         } else {
             break;
         }
     }
 
     // elm docs internal bookmark link
-    let anchor_link = Regex::new(r"\[(\w+)\]\((\#\w+)\)").unwrap();
+    let anchor_link = Regex::new(r"\[(\w+)\]\(\#(\w+)\)")?;
 
-    let file = File::open(filename).unwrap();
+    let file = File::open(filename)?;
     let reader = BufReader::new(file);
 
     for line in reader.lines() {
-        let line = line.unwrap();
+        let line = line?;
         for capture in anchor_link.captures_iter(&line) {
-            let whole = capture.get(0).unwrap().as_str();
-            let name = capture.get(1).unwrap().as_str();
-            let link = capture.get(2).unwrap().as_str();
+            let whole = capture.get(0).expect("whole-get").as_str();
+            let name = capture.get(1).expect("name-get").as_str();
+            let link = capture.get(2).expect("link-get").as_str();
             if &name != &link {
                 println!("{}: name and link different.", whole);
             }
@@ -43,4 +44,5 @@ fn main() {
             }
         }
     }
+    Ok(())
 }
