@@ -30,17 +30,24 @@ fn main() -> Result<()> {
     let file = File::open(filename)?;
     let reader = BufReader::new(file);
 
-    for line in reader.lines() {
-        let line = line?;
-        for capture in anchor_link.captures_iter(&line) {
+    for line in reader
+        .lines()
+        .map(|li| li.ok().expect("lines 2"))
+        .enumerate()
+    {
+        for capture in anchor_link.captures_iter(&line.1) {
             let whole = capture.get(0).expect("whole-get").as_str();
             let name = capture.get(1).expect("name-get").as_str();
             let link = capture.get(2).expect("link-get").as_str();
             if &name != &link {
-                println!("{}: name and link different.", whole);
+                println!("line {} - {}: name and link different.", &line.0 + 1, whole);
             }
             if !(identifiers.iter().any(|s| &s == &link)) {
-                println!("The link '{}' does not correspond to an identifier.", link);
+                println!(
+                    "line {} - The link '{}' does not correspond to an identifier.",
+                    &line.0 + 1,
+                    link
+                );
             }
         }
     }
